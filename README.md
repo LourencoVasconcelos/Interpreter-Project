@@ -1,4 +1,4 @@
 # ICL-project
-ICL Project
 
-ICL1- 1ª Entrega
+
+Pasta ICL1 contém o trabalho respetivo à 1ª entrega.
