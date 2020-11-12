@@ -1,2 +1,2 @@
-# icl-project
+# ICL-project
 ICL Project
