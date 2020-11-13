@@ -13,15 +13,15 @@ public class ASTDef implements ASTNode {
 	
 	public int eval(Environment e) {
 		int preval=0;
+		e = e.beginScope();
+		
 		for(int i =0;  i<inits.size(); i++) {
 			preval = inits.get(i).eval(e);
-			e = e.beginScope();
 			e.assoc(ids.get(i), preval);
 		}
+		
 		int endval = body.eval(e);
-		for(int j =0;  j<inits.size(); j++) {
-			e = e.endScope();
-		}
+		e = e.endScope();
 		return endval;
 	}
 
