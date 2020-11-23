@@ -16,19 +16,19 @@ public class ASTId implements ASTNode {
         this.id = id;
         }
 
+    //   	if(env.depth()>0)
     public void compile(CodeBlock c, Environment env) {
 		Coordinates coord = env.findc(id);
 		int depth = env.depth();
     	c.emit("aload_3");
- //   	if(env.depth()>0)
     	while(coord.getDepth()<depth-1) {
-    		depth=depth-2;
-    		c.emit(String.format("getfield frame_%d/sl Lframe_%d;", env.depth()-1,depth));
+    		c.emit(String.format("getfield frame_%d/sl Lframe_%d;", depth-1 ,depth-2));
+    		depth=depth-1;
     		
     	}
+    	c.emit(String.format("getfield frame_%d/v%d I", coord.getDepth(),coord.getVar()));
+    }
 //    	else
 //    		c.emit(bytecode);
-    	c.emit(String.format("getfield frame_%d/v%d I", coord.getDepth(),coord.getVar()));
-	}
 
 }

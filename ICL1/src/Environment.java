@@ -41,9 +41,6 @@ public class Environment {
 	
 	
 	
-	
-	
-	
 	//Compiler
 	
 	int depth() {
