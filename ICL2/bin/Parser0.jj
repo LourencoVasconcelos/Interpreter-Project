@@ -1,0 +1,237 @@
+PARSER_BEGIN(Parser)
+import java.io.PrintStream;
+import java.io.FileOutputStream;
+
+/** ID lister. */
+public class Parser {
+
+  /** Main entry point. */
+  public static void main(String args[]) {
+    Parser parser = new Parser(System.in);
+    ASTNode exp;
+    while (true) {
+    try {
+    exp = parser.Start();
+    System.out.println( exp.eval(new Environment()).toString() );
+	
+	//CodeBlock c = new CodeBlock();
+	//exp.compile(c, new Environment());
+	//FileOutputStream file = new FileOutputStream("FinishFile.j");
+	//c.dump(new PrintStream(file));
+
+    
+    }catch (TypeError e) {
+	  e.printStackTrace();
+      parser.ReInit(System.in);
+    }
+     catch (NotFound e) {
+	  e.printStackTrace();
+      parser.ReInit(System.in);
+    }
+     catch (Exception e) {
+      System.out.println ("Syntax Error!");
+      parser.ReInit(System.in);
+    }
+    }
+  }
+
+}
+
+PARSER_END(Parser)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\r"
+}
+
+TOKEN :
+{
+  < DEF: "def" >
+  |
+  < ASSIGN: ":=" >
+  | 
+  < DREF: "!" >
+  | 
+  < IN: "in" >
+  |
+  < END:"end" >
+  |
+  < NEW:"new" >
+  |
+  < EQ: "=" > 
+  |
+  < COMPEQ: "==" >
+  |
+  < BIGGER: ">" >
+  |
+  < SMALLER: "<" >
+  |
+  < SMALLEQ: "<=" >
+  |
+  < BIGEQ: ">=" >
+  |
+  < TRUE: "true" >
+  |
+  < FALSE: "false" >
+  | 
+  < IF:"if" >
+  |
+  < THEN: "then" >
+  |
+  < ELSE: "else" >
+  |
+  < WHILE:"while" >
+  |
+  < DO:"do" >
+  |
+  < PRINT:"print" >
+  |
+  < PRINTLN:"println" >
+  |
+  < AND:"&&" >
+  |
+  < OR:"||" >
+  |
+  < NOT:"~" >
+  | 
+  < Id: ["a"-"z","A"-"Z"] ( ["a"-"z","A"-"Z","0"-"9"] )* >
+  |
+  < Num: (["0"-"9"]) + >
+  |
+  < PLUS : "+" >
+  |
+  < MINUS : "-">
+  |
+  < TIMES : "*">
+  |
+  < DIV : "/">
+  |
+  < REST: "%" >
+  |
+  < LPAR : "(" >
+  |
+  < RPAR : ")" >
+  |
+  < ELEND  : ";;" >
+  | 
+  < SEQ : ";" >
+  | 
+  < EL: "\n" >
+}
+
+ASTNode Start():
+{ ASTNode t; }
+{
+   t = Seq()  <ELEND> <EL>
+   { return t; }
+}
+
+ASTNode Seq():
+{
+  ASTNode t1,t2;
+  ASTSeq seq; }
+{
+	( { seq = new ASTSeq(); } t1=Eq() (<EL>)* { seq.addNode(t1); } (< SEQ > (<EL>)* t2=Eq() (<EL>)*{ seq.addNode(t2); })*)	  
+		{ return seq; }
+}
+
+ASTNode Eq():
+{
+  Token op;
+  ASTNode t1,t2; }
+{
+  t1 =Exp() (<EL>)*( ( op= < COMPEQ > | op = < ASSIGN > | op= < BIGGER > | op= < SMALLER > |
+  				op=< SMALLEQ > | op= < BIGEQ > | op=< AND > | op= < OR >) (<EL>)* t2 = Exp()
+  			{  if (op.kind == ASSIGN)
+  				t1 = new ASTAssign(t1,t2);
+  			else if (op.kind == COMPEQ)
+  				t1 = new ASTEq(t1,t2, op.image);
+  			else if (op.kind == BIGGER)
+  				t1 = new ASTEq(t1,t2, op.image);
+  			else if (op.kind == SMALLER)
+  				t1 = new ASTEq(t1,t2, op.image);
+  			else if (op.kind == SMALLEQ)
+  				t1 = new ASTEq(t1,t2, op.image);
+  			else if (op.kind == BIGEQ)
+  				t1 = new ASTEq(t1,t2,op.image);
+  			else if (op.kind == AND)
+  				t1 = new ASTLogic(t1,t2,op.image);
+  			else if (op.kind == OR)
+  				t1 = new ASTLogic(t1,t2,op.image);
+  	})*
+  	{ return t1; }
+ }
+
+ASTNode Exp() :
+{ Token op;
+  ASTNode t1, t2; }
+{
+     t1=Term() (<EL>)* ( ( op=<PLUS> | op=<MINUS> ) (<EL>)* t2=Term() 
+                 { if (op.kind == PLUS) 
+                         t1 = new ASTPlus(t1,t2);
+                   else  t1 = new ASTSub(t1,t2);
+                 } 
+               ) *
+     { return t1; } 
+}
+
+ASTNode Term() :
+{Token op;
+  ASTNode t1, t2;}
+{
+     t1 = Fact() (<EL>)* ( ( op=<TIMES> | op=<DIV> | op=<REST>) (<EL>)* t2 = Fact() 
+ 		 { if (op.kind == TIMES)
+ 		 		t1 = new ASTTimes(t1,t2);
+ 		  		else if(op.kind ==DIV) t1 = new ASTDiv(t1,t2);
+ 		  		else t1 = new ASTRest(t1,t2);
+         } 
+		)*
+     { return t1; } 
+}
+
+
+ASTNode Fact() :
+{ Token n, id; 
+  ASTNode t, t1, t2, body;
+  ASTDef def;}
+{
+   ( n=<Num> (<EL>)* { t = new ASTNum( new VInt(Integer.parseInt(n.image))); }
+   | id = <TRUE> (<EL>)* { t= new ASTBool(id.image); }
+   | id = <FALSE> (<EL>)* { t= new ASTBool(id.image); }
+   | < NOT > t1 = Seq() (<EL>)* { t= new ASTNot(t1); }  
+   | <LPAR>(<EL>)* t=Seq() (<EL>)* <RPAR> 
+   | < MINUS > (<EL>)* { t = new ASTTimes(new ASTNum( new VInt(-1)), Fact() ); }
+   | < PLUS > (<EL>)* { t = Fact(); }
+   | < DEF > (<EL>)* { def= new ASTDef(); } (id = < Id > (<EL>)* < EQ > t1 = Seq() (<EL>)* { def.add(id.image,t1); })+ (<EL>)* < IN > (<EL>)* body = Seq()(<EL>)* < END > { t =def.body(body) ;} 
+   | id=<Id> (<EL>)* { t = new ASTId(id.image); }
+   | < NEW > (<EL>)* { t = new ASTNew(Seq()); }
+   | < DREF > (<EL>)* t1 = Fact() {  t = new ASTRef(t1); }
+   | <IF> (<EL>)* body = Seq() (<EL>)* < THEN > (<EL>)* t1 = Seq() (<EL>)* ( < ELSE > (<EL>)* t2=Seq() (<EL>)* < END > { t = new ASTIf(body, t1, t2) ; } | < END > { t = new ASTIf(body, t1, null); } )
+   | < WHILE > (<EL>)* t1 = Seq() (<EL>)*< DO > (<EL>)* t2=Seq() (<EL>)* < END > {  t = new ASTWhile(t1,t2); }
+   | < PRINT > (<EL>)* (t1=Eq() { t = new ASTPrint(t1); } | { t = new ASTPrint(null); })
+   | < PRINTLN > (<EL>)* (t1=Eq() { t = new ASTPrintln(t1); } | { t = new ASTPrintln(null); })
+   )
+   { return t; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
