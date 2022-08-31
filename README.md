@@ -1,6 +1,6 @@
 # ICL-project
 
 
-Pasta ICL1 contém o trabalho respetivo à 1ª entrega.
+ICL1 contains 1st part of the project
 
-Pasta ICL2 contém o trabalho respetivo à 2ª entrega. 
+ICL2 contains the full Interpreter
